@@ -5,7 +5,7 @@ from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 from openai import OpenAI
 
-# Logların Render ekranına anında düşmesi için tamponlamayı kapatıyoruz
+# Logların Render ekranına anında düşmesi için
 sys.stdout.reconfigure(line_buffering=True)
 
 app = Flask(__name__)
@@ -40,20 +40,35 @@ def webhook():
     
     print(f"\n[+] Gelen Mesaj ({sender}): {incoming_msg}", flush=True)
 
-    try:
-        completion = client.chat.completions.create(
-            model="meta/llama-3.3-70b-instruct",  # Güncel ve aktif model
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": incoming_msg}
-            ],
-            temperature=0.8,
-            max_tokens=200
-        )
-        ai_response = completion.choices[0].message.content
-        print(f"[+] Yapay Zeka Yanıtı: {ai_response}", flush=True)
-    except Exception as e:
-        print(f"[-] NVIDIA API HATASI DETAYI:\n{traceback.format_exc()}", flush=True)
+    # DeepSeek öncelikli, ardından diğer dev modeller
+    models_to_try = [
+        "deepseek/deepseek-v4.1-flash",
+        "meta/llama-3.1-405b-instruct",
+        "mistralai/mistral-large-2-instruct",
+        "nvidia/nemotron-4-340b-instruct"
+    ]
+    
+    ai_response = None
+
+    for model_name in models_to_try:
+        try:
+            completion = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": incoming_msg}
+                ],
+                temperature=0.8,
+                max_tokens=200
+            )
+            ai_response = completion.choices[0].message.content
+            print(f"[+] Başarılı Model ({model_name}): {ai_response}", flush=True)
+            break
+        except Exception as e:
+            print(f"[-] {model_name} Modeli Hata Verdi, diğerine geçiliyor...", flush=True)
+
+    if not ai_response:
+        print(f"[-] TÜM MODELLER HATA VERDİ:\n{traceback.format_exc()}", flush=True)
         ai_response = "ufak bi sorun oldu kanka tekrar yazsana"
 
     resp = MessagingResponse()
