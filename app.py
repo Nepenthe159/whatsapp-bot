@@ -1,85 +1,45 @@
-import os
-import sys
-import traceback
-import requests
-from flask import Flask, request as flask_request
-from twilio.twiml.messaging_response import MessagingResponse
+import base64
+from openai import OpenAI
 
-sys.stdout.reconfigure(line_buffering=True)
-
-app = Flask(__name__)
-
-# NVIDIA API Key'ini buraya açıkça ekledik kanka
-NVIDIA_API_KEY = "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"
-
-SYSTEM_PROMPT = (
-    "Sen WhatsApp'ta arkadaşınla yazışan samimi, sokak dilini ve günlük Türkçeyi rahat kullanan gerçek bir gençsin. "
-    "Adın kanka, kafa dengi birisin.\n\n"
-    "STRICT RULES (BU KURALLARI ASLA İHLAL ETME):\n"
-    "1. ASLA 'Siz', 'Sizin', 'İstersiniz', 'Yardımcı olayım', 'Ne tür sorunlar', 'Sevgili dostum' gibi müşteri temsilcisi veya yapay zeka lafları KULLANMA.\n"
-    "2. Sen bir yapay zeka veya asistan DEĞİLSİN. Senden bir görev istenmedikçe asistanlık yapma, sadece sohbet et.\n"
-    "3. Sadece 'sen', 'kanka', 'bro', 'kral' diye hitap et.\n"
-    "4. Cümlelerin kısa, tek-iki satırlık, WhatsApp mesajı formatında olsun. Küçük harflerle, rahat ve samimi yaz.\n"
-    "5. Kullanıcının söylediği lafları tekrarlama, muhabbeti kendin devam ettir."
+# NVIDIA API istemcisini verdiğin anahtarla tanımlıyoruz
+client = OpenAI(
+    base_url="https://integrate.api.nvidia.com/v1",
+    api_key="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",
 )
 
-@app.route("/", methods=['GET'])
-def home():
-    print("[+] Ana sayfaya ping geldi", flush=True)
-    return "Bot aktif ve çalışıyor!", 200
+# Görseli okuyup Base64 formatına çevirme
+image_path = "resim.jpg"  # Analiz ettireceğin görselin dosya adı veya yolu
 
-@app.route("/webhook", methods=['POST'])
-def webhook():
-    incoming_msg = flask_request.values.get('Body', '').strip()
-    sender = flask_request.values.get('From', '')
-    
-    print(f"\n[+] Gelen Mesaj ({sender}): {incoming_msg}", flush=True)
+with open(image_path, "rb") as f:
+    b64_image = base64.b64encode(f.read()).decode("utf-8")
 
-    ai_response = None
-    
-    url = "https://integrate.api.nvidia.com/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {NVIDIA_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    
-    models_to_try = [
-        "meta/llama-3.1-70b-instruct",
-        "nvidia/llama-3.1-nemotron-70b-instruct"
-    ]
+# API isteğini gönderme
+response = client.chat.completions.create(
+    model="deepseek-ai/deepseek-v4.1-flash",
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": (
+                        "Describe the path in this image and the landscape"
+                        " around it in two sentences."
+                    ),
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{b64_image}"
+                    },
+                },
+            ],
+        }
+    ],
+    temperature=0.2,
+    top_p=0.7,
+    max_tokens=1024,
+)
 
-    for model_name in models_to_try:
-        try:
-            print(f"[*] Denenen Model: {model_name}", flush=True)
-            payload = {
-                "model": model_name,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": incoming_msg}
-                ],
-                "temperature": 0.8,
-                "max_tokens": 200
-            }
-            
-            response = requests.post(url, json=payload, headers=headers, timeout=30)
-            
-            if response.status_code == 200:
-                data = response.json()
-                ai_response = data["choices"][0]["message"]["content"]
-                print(f"[+] Başarılı Yanıt Alındı ({model_name}): {ai_response}", flush=True)
-                break
-            else:
-                print(f"[-] {model_name} HTTP Hatası {response.status_code}: {response.text}", flush=True)
-                
-        except Exception as e:
-            print(f"[-] {model_name} İstek Hatası:\n{traceback.format_exc()}", flush=True)
-
-    if not ai_response:
-        ai_response = "ufak bi sorun oldu kanka tekrar yazsana"
-
-    resp = MessagingResponse()
-    resp.message(ai_response)
-    return str(resp)
-
-if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+# Yapay zekanın cevabını ekrana yazdırma
+print(response.choices[0].message.content)
