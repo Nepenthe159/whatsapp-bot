@@ -1,8 +1,12 @@
 import os
+import sys
 import traceback
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 from openai import OpenAI
+
+# Logların Render ekranına anında düşmesi için tamponlamayı kapatıyoruz
+sys.stdout.reconfigure(line_buffering=True)
 
 app = Flask(__name__)
 
@@ -34,11 +38,11 @@ def webhook():
     incoming_msg = request.values.get('Body', '').strip()
     sender = request.values.get('From', '')
     
-    print(f"\n[+] Gelen Mesaj ({sender}): {incoming_msg}")
+    print(f"\n[+] Gelen Mesaj ({sender}): {incoming_msg}", flush=True)
 
     try:
         completion = client.chat.completions.create(
-            model="meta/llama-3.1-70b-instruct",  # Tam uyumlu 70B modeli
+            model="meta/llama-3.1-70b-instruct",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": incoming_msg}
@@ -47,9 +51,9 @@ def webhook():
             max_tokens=200
         )
         ai_response = completion.choices[0].message.content
-        print(f"[+] Yapay Zeka Yanıtı: {ai_response}")
+        print(f"[+] Yapay Zeka Yanıtı: {ai_response}", flush=True)
     except Exception as e:
-        print(f"[-] NVIDIA API HATASI DETAYI:\n{traceback.format_exc()}")
+        print(f"[-] NVIDIA API HATASI DETAYI:\n{traceback.format_exc()}", flush=True)
         ai_response = "ufak bi sorun oldu kanka tekrar yazsana"
 
     resp = MessagingResponse()
