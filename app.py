@@ -25,6 +25,11 @@ SYSTEM_PROMPT = (
     "5. Kullanıcının söylediği lafları tekrarlama, muhabbeti kendin devam ettir."
 )
 
+# UptimeRobot için Ana Sayfa (404 Hatasını Çözer)
+@app.route("/", methods=['GET'])
+def home():
+    return "Bot aktif ve çalışıyor!", 200
+
 @app.route("/webhook", methods=['POST'])
 def webhook():
     incoming_msg = request.values.get('Body', '').strip()
@@ -39,7 +44,7 @@ def webhook():
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": incoming_msg}
             ],
-            temperature=0.85,  # Daha esnek ve kalıp dışı yanıtlar için
+            temperature=0.85,
             max_tokens=200
         )
         ai_response = completion.choices[0].message.content
