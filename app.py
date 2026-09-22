@@ -1,20 +1,15 @@
 import os
 import sys
 import traceback
-from flask import Flask, request
+import requests
+from flask import Flask, request as flask_request
 from twilio.twiml.messaging_response import MessagingResponse
-from openai import OpenAI
 
 sys.stdout.reconfigure(line_buffering=True)
 
 app = Flask(__name__)
 
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "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")
-
-client = OpenAI(
-    base_url="https://integrate.api.nvidia.com/v1",
-    api_key=NVIDIA_API_KEY
-)
 
 SYSTEM_PROMPT = (
     "Sen WhatsApp'ta arkadaşınla yazışan samimi, sokak dilini ve günlük Türkçeyi rahat kullanan gerçek bir gençsin. "
@@ -34,35 +29,50 @@ def home():
 
 @app.route("/webhook", methods=['POST'])
 def webhook():
-    incoming_msg = request.values.get('Body', '').strip()
-    sender = request.values.get('From', '')
+    incoming_msg = flask_request.values.get('Body', '').strip()
+    sender = flask_request.values.get('From', '')
     
     print(f"\n[+] Gelen Mesaj ({sender}): {incoming_msg}", flush=True)
 
+    ai_response = None
+    
+    # Doğrudan NVIDIA NIM HTTP API uç noktası (OpenAI bağımlılığı yok)
+    url = "https://integrate.api.nvidia.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {NVIDIA_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
     models_to_try = [
         "meta/llama-3.1-70b-instruct",
         "nvidia/llama-3.1-nemotron-70b-instruct"
     ]
-    
-    ai_response = None
 
     for model_name in models_to_try:
         try:
             print(f"[*] Denenen Model: {model_name}", flush=True)
-            completion = client.chat.completions.create(
-                model=model_name,
-                messages=[
+            payload = {
+                "model": model_name,
+                "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": incoming_msg}
                 ],
-                temperature=0.8,
-                max_tokens=200
-            )
-            ai_response = completion.choices[0].message.content
-            print(f"[+] Başarılı Yanıt Alındı ({model_name}): {ai_response}", flush=True)
-            break
+                "temperature": 0.8,
+                "max_tokens": 200
+            }
+            
+            response = requests.post(url, json=payload, headers=headers, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                ai_response = data["choices"][0]["message"]["content"]
+                print(f"[+] Başarılı Yanıt Alındı ({model_name}): {ai_response}", flush=True)
+                break
+            else:
+                print(f"[-] {model_name} HTTP Hatası {response.status_code}: {response.text}", flush=True)
+                
         except Exception as e:
-            print(f"[-] {model_name} Hata Verdi:\n{traceback.format_exc()}", flush=True)
+            print(f"[-] {model_name} İstek Hatası:\n{traceback.format_exc()}", flush=True)
 
     if not ai_response:
         ai_response = "ufak bi sorun oldu kanka tekrar yazsana"
