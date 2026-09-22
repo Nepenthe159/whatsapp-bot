@@ -14,9 +14,9 @@ client = OpenAI(
 )
 
 
-@app.route("/whatsapp", methods=["POST"])
+# DÜZELTME: Twilio'nun istek attığı adres /webhook olarak güncellendi
+@app.route("/webhook", methods=["POST"])
 def whatsapp_reply():
-  # WhatsApp üzerinden gelen mesajı ve medya (görsel) sayısını alıyoruz
   incoming_msg = request.form.get("Body", "").strip()
   num_media = int(request.form.get("NumMedia", 0))
 
@@ -24,17 +24,14 @@ def whatsapp_reply():
   msg = resp.message()
 
   try:
-    # Kullanıcı WhatsApp'tan bir görsel gönderdiyse
     if num_media > 0:
       media_url = request.form.get("MediaUrl0")
       media_type = request.form.get("MediaContentType0", "")
 
       if "image" in media_type:
-        # Twilio'daki görseli indirip base64 formatına çeviriyoruz
         img_data = requests.get(media_url).content
         b64_image = base64.b64encode(img_data).decode("utf-8")
 
-        # Kullanıcı görselle birlikte yazı yazdıysa onu prompt olarak kullan, yoksa varsayılan metni kullan
         prompt_text = (
             incoming_msg
             if incoming_msg
@@ -44,7 +41,6 @@ def whatsapp_reply():
             )
         )
 
-        # NVIDIA API (DeepSeek model) ile görseli analize gönderiyoruz
         completion = client.chat.completions.create(
             model="deepseek-ai/deepseek-v4.1-flash",
             messages=[
@@ -74,7 +70,6 @@ def whatsapp_reply():
             " edebiliyorum."
         )
     else:
-      # Sadece metin mesajı geldiyse
       msg.body(
           f"Mesajını aldım: '{incoming_msg}'. Bana bir fotoğraf gönderirsen"
            " onu da inceleyebilirim kanka!"
