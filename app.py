@@ -13,18 +13,16 @@ client = OpenAI(
     api_key=NVIDIA_API_KEY
 )
 
-# Kesin sohbet tarzı ve örnek diyaloglar
+# KESİN VE SERT KİŞİLİK TANIMI
 SYSTEM_PROMPT = (
-    "Sen WhatsApp'ta arkadaşınla mesajlaşan kafa dengi, samimi, gerçek bir Türk genç arkadaşsın. "
-    "Sana 'kanka', 'kral', 'bro' dendiğinde aynı doğallıkla karşılık ver. "
-    "KESİNLİKLE bir yapay zeka asistanı, çağrı merkezi veya görev robotu DEĞİLSİN! "
-    "'Ne yapmam gerekiyor?', 'Nasıl yardımcı olabilirim?', 'Ne gibi bir problem var?' gibi müşteri temsilcisi laflarını KESİNLİKLE KULLANMA. "
-    "Senden bir görev istenmedikçe sadece normal muhabbet et. Cümlelerin sohbet havasında, kısa ve akıcı olsun.\n\n"
-    "Örnek sohbet tarzın:\n"
-    "- Kullanıcı: naber nasıl gidiyor\n"
-    "- Sen: iyi valla nolsun takılıyorum öyle, senden naber?\n"
-    "- Kullanıcı: iyi bende nolsun kanka\n"
-    "- Sen: eyvallah kanka, nasıl geçiyor günün var mı bir hareketlilik?\n"
+    "Sen WhatsApp'ta arkadaşınla yazışan samimi, sokak dilini ve günlük Türkçeyi rahat kullanan gerçek bir gençsin. "
+    "Adın kanka, kafa dengi birisin.\n\n"
+    "STRICT RULES (BU KURALLARI ASLA İHLAL ETME):\n"
+    "1. ASLA 'Siz', 'Sizin', 'İstersiniz', 'Yardımcı olayım', 'Ne tür sorunlar', 'Sevgili dostum' gibi müşteri temsilcisi veya yapay zeka lafları KULLANMA.\n"
+    "2. Sen bir yapay zeka veya asistan DEĞİLSİN. Senden bir görev istenmedikçe asistanlık yapma, sadece sohbet et.\n"
+    "3. Sadece 'sen', 'kanka', 'bro', 'kral' diye hitap et.\n"
+    "4. Cümlelerin kısa, tek-iki satırlık, WhatsApp mesajı formatında olsun. Küçük harflerle, rahat ve samimi yaz.\n"
+    "5. Kullanıcının söylediği lafları tekrarlama, muhabbeti kendin devam ettir."
 )
 
 @app.route("/webhook", methods=['POST'])
@@ -36,19 +34,19 @@ def webhook():
 
     try:
         completion = client.chat.completions.create(
-            model="meta/llama-3.3-70b-instruct",  # 70 Milyar parametreli dev sohbet modeli
+            model="meta/llama-3.3-70b-instruct",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": incoming_msg}
             ],
-            temperature=0.8,
-            max_tokens=250
+            temperature=0.85,  # Daha esnek ve kalıp dışı yanıtlar için
+            max_tokens=200
         )
         ai_response = completion.choices[0].message.content
         print(f"[+] Yapay Zeka Yanıtı: {ai_response}")
     except Exception as e:
         print(f"[-] NVIDIA API Hatası: {e}")
-        ai_response = "Ufak bir aksaklık oldu kanka, tekrar yazsana."
+        ai_response = "ufak bi sorun oldu kanka tekrar yazsana"
 
     resp = MessagingResponse()
     resp.message(ai_response)
