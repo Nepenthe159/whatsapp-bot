@@ -9,7 +9,8 @@ sys.stdout.reconfigure(line_buffering=True)
 
 app = Flask(__name__)
 
-NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "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")
+# NVIDIA API Key'ini buraya açıkça ekledik kanka
+NVIDIA_API_KEY = "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"
 
 SYSTEM_PROMPT = (
     "Sen WhatsApp'ta arkadaşınla yazışan samimi, sokak dilini ve günlük Türkçeyi rahat kullanan gerçek bir gençsin. "
@@ -36,7 +37,6 @@ def webhook():
 
     ai_response = None
     
-    # Doğrudan NVIDIA NIM HTTP API uç noktası (OpenAI bağımlılığı yok)
     url = "https://integrate.api.nvidia.com/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {NVIDIA_API_KEY}",
