@@ -42,7 +42,7 @@ def webhook():
 
     try:
         completion = client.chat.completions.create(
-            model="meta/llama-3.1-70b-instruct",
+            model="meta/llama-3.3-70b-instruct",  # Güncel ve aktif model
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": incoming_msg}
