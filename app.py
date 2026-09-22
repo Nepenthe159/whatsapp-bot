@@ -5,12 +5,10 @@ from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 from openai import OpenAI
 
-# Logların Render ekranına anında düşmesi için
 sys.stdout.reconfigure(line_buffering=True)
 
 app = Flask(__name__)
 
-# NVIDIA NIM API Yapılandırması
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "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")
 
 client = OpenAI(
@@ -41,7 +39,6 @@ def webhook():
     
     print(f"\n[+] Gelen Mesaj ({sender}): {incoming_msg}", flush=True)
 
-    # NVIDIA NIM üzerinde en kararlı çalışan modeller listesi
     models_to_try = [
         "meta/llama-3.1-70b-instruct",
         "nvidia/llama-3.1-nemotron-70b-instruct"
