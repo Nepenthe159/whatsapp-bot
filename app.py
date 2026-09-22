@@ -1,4 +1,5 @@
 import os
+import traceback
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 from openai import OpenAI
@@ -13,7 +14,6 @@ client = OpenAI(
     api_key=NVIDIA_API_KEY
 )
 
-# KESİN VE SERT KİŞİLİK TANIMI
 SYSTEM_PROMPT = (
     "Sen WhatsApp'ta arkadaşınla yazışan samimi, sokak dilini ve günlük Türkçeyi rahat kullanan gerçek bir gençsin. "
     "Adın kanka, kafa dengi birisin.\n\n"
@@ -25,7 +25,6 @@ SYSTEM_PROMPT = (
     "5. Kullanıcının söylediği lafları tekrarlama, muhabbeti kendin devam ettir."
 )
 
-# UptimeRobot için Ana Sayfa (404 Hatasını Çözer)
 @app.route("/", methods=['GET'])
 def home():
     return "Bot aktif ve çalışıyor!", 200
@@ -39,18 +38,18 @@ def webhook():
 
     try:
         completion = client.chat.completions.create(
-            model="meta/llama-3.3-70b-instruct",
+            model="meta/llama-3.1-70b-instruct",  # Tam uyumlu 70B modeli
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": incoming_msg}
             ],
-            temperature=0.85,
+            temperature=0.8,
             max_tokens=200
         )
         ai_response = completion.choices[0].message.content
         print(f"[+] Yapay Zeka Yanıtı: {ai_response}")
     except Exception as e:
-        print(f"[-] NVIDIA API Hatası: {e}")
+        print(f"[-] NVIDIA API HATASI DETAYI:\n{traceback.format_exc()}")
         ai_response = "ufak bi sorun oldu kanka tekrar yazsana"
 
     resp = MessagingResponse()
