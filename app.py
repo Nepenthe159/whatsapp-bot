@@ -39,14 +39,14 @@ def whatsapp_reply():
             )
         )
 
-        # NVIDIA API için doğrudan requests.post payload hazırlığı
         headers = {
             "Authorization": f"Bearer {NVIDIA_API_KEY}",
             "Content-Type": "application/json",
         }
 
+        # Görsel destekleyen Llama Vision modeli ile güncellendi
         payload = {
-            "model": "deepseek-ai/deepseek-v4.1-flash",
+            "model": "meta/llama-3.2-11b-vision-instruct",
             "messages": [{
                 "role": "user",
                 "content": [
@@ -64,7 +64,6 @@ def whatsapp_reply():
             "max_tokens": 500,
         }
 
-        # API isteğini gönderiyoruz
         response = requests.post(
             NVIDIA_URL, json=payload, headers=headers, timeout=60
         )
